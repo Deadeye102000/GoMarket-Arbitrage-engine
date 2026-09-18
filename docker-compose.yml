@@ -1,0 +1,130 @@
+version: '3.9'
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: gomarket-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gomarket
+      POSTGRES_PASSWORD: gomarket
+      POSTGRES_DB: gomarket
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gomarket -d gomarket"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: gomarket-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── Redpanda (Kafka-compatible, single binary, no ZooKeeper) ────────────────
+  redpanda:
+    image: redpandadata/redpanda:latest
+    container_name: gomarket-redpanda
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --smp 1
+      - --memory 512M
+      - --reserve-memory 0M
+      - --overprovisioned
+      - --node-id 0
+    ports:
+      - "19092:19092"  # external Kafka port
+      - "9644:9644"    # Redpanda admin UI
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  # ── Ollama (local LLM runtime — free, no API key) ──────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gomarket-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # ── GoMarket Engine ─────────────────────────────────────────────────────────
+  engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gomarket-engine
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    environment:
+      DATABASE_DSN: postgres://gomarket:gomarket@postgres:5432/gomarket?sslmode=disable
+      REDIS_ADDR: redis:6379
+      KAFKA_BROKERS: redpanda:9092
+      KAFKA_TOPIC: market.ticks
+      KAFKA_ENABLED: "true"
+      OLLAMA_BASE_URL: http://ollama:11434/v1
+      OLLAMA_MODEL: llama3.2
+      LLM_ENABLED: "true"
+      LLM_SAMPLE_RATE: "10"
+      WORKER_COUNT: "10"
+      CHANNEL_SIZE: "500"
+      BATCH_SIZE: "100"
+      FLUSH_INTERVAL: "500ms"
+      MIN_SPREAD_PCT: "1.0"
+      PORT: "8080"
+      OTEL_ENDPOINT: "stdout"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  postgres_data:
+  redis_data:
+  redpanda_data:
+  ollama_data:
