@@ -17,6 +17,8 @@ coverage.out
 .idea/
 .vscode/
 
-# Temporary files
+# Temporary files & Local Preparation Guides
 scratch/
 tmp/
+INTERVIEW_GUIDE.md
+interview_guide.md
