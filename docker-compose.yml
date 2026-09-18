@@ -63,7 +63,7 @@ services:
       retries: 20
       start_period: 20s
 
-  # ── Ollama (local LLM runtime — free, no API key) ──────────────────────────
+  # ── Ollama (OpenAI-compatible local LLM fallback container) ──────────────────
   ollama:
     image: ollama/ollama:latest
     container_name: gomarket-ollama
@@ -122,6 +122,28 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  # ── Python/FastAPI Analytical Sidecar ───────────────────────────────────────
+  analytics-sidecar:
+    build:
+      context: ./services/analytics
+      dockerfile: Dockerfile
+    container_name: gomarket-analytics
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://gomarket:gomarket@postgres:5432/gomarket?sslmode=disable
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8080/healthz\")' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 
 volumes:
   postgres_data:
