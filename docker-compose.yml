@@ -73,11 +73,11 @@ services:
     environment:
       - OLLAMA_KEEP_ALIVE=24h
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
-      interval: 10s
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 30s
+      retries: 5
+      start_period: 5s
 
   # ── GoMarket Engine ─────────────────────────────────────────────────────────
   engine:
