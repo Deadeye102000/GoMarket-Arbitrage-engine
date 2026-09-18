@@ -1,0 +1,58 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/gomarket-oss/arbitrage-engine
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# Non-secret environment variables (secrets injected via secretRef)
+env:
+  WORKER_COUNT: "10"
+  CHANNEL_SIZE: "500"
+  BATCH_SIZE: "100"
+  FLUSH_INTERVAL: "500ms"
+  MIN_SPREAD_PCT: "1.0"
+  KAFKA_ENABLED: "true"
+  KAFKA_TOPIC: "market.ticks"
+  LLM_ENABLED: "true"
+  LLM_SAMPLE_RATE: "10"
+  OLLAMA_MODEL: "llama3.2"
+  PORT: "8080"
+  OTEL_ENDPOINT: "stdout"
+
+# Secret name must contain: DATABASE_DSN, REDIS_ADDR, KAFKA_BROKERS, OLLAMA_BASE_URL
+secretName: gomarket-secrets
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  failureThreshold: 3

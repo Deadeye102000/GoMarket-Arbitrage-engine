@@ -1,0 +1,17 @@
+apiVersion: v2
+name: gomarket-arbitrage-engine
+description: >
+  High-frequency arbitrage signal pipeline.
+  Go worker pool + Kafka + Redis + PostgreSQL + Ollama LLM.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - go
+  - arbitrage
+  - kafka
+  - postgresql
+  - llm
+maintainers:
+  - name: gomarket-oss
+    url: https://github.com/gomarket-oss/arbitrage-engine
