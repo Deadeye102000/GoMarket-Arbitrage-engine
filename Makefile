@@ -67,6 +67,10 @@ test:
 	@echo "Running unit tests with race detector..."
 	go test -race -count=1 -timeout 30s ./internal/...
 
+test-python:
+	@echo "Running Python sidecar pytest suite..."
+	@cd services/analytics && pytest
+
 integration:
 	@echo "Running containerized integration tests (requires Docker)..."
 	go test -v -race -count=1 -timeout 120s ./tests/integration/...
@@ -85,6 +89,10 @@ lint:
 	@which staticcheck > /dev/null 2>&1 || go install honnef.co/go/tools/cmd/staticcheck@latest
 	staticcheck ./...
 	@echo "✓ Lint passed."
+
+lint-python:
+	@echo "Running ruff and mypy on Python analytics sidecar..."
+	@cd services/analytics && ruff check . && mypy .
 
 fmt:
 	gofmt -w -s .
