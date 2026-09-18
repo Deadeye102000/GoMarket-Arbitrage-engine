@@ -27,7 +27,7 @@ pull-model:
 migrate:
 	@echo "Running migrations..."
 	docker run --rm \
-		-v $(PWD)/migrations:/migrations \
+		-v "$(PWD)/migrations:/migrations" \
 		--network host \
 		migrate/migrate \
 		-path=/migrations/ \
@@ -37,7 +37,7 @@ migrate:
 
 migrate-down:
 	docker run --rm \
-		-v $(PWD)/migrations:/migrations \
+		-v "$(PWD)/migrations:/migrations" \
 		--network host \
 		migrate/migrate \
 		-path=/migrations/ \
