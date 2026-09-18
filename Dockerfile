@@ -1,5 +1,7 @@
 # ── Build stage ───────────────────────────────────────────────────────────────
-FROM golang:1.22-alpine AS builder
+FROM golang:alpine AS builder
+
+ENV GOTOOLCHAIN=auto
 
 RUN apk add --no-cache git ca-certificates tzdata
 
@@ -11,13 +13,12 @@ RUN go mod download && go mod verify
 
 # Copy source and build a statically-linked binary
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-w -s" \
     -o /bin/engine \
     ./cmd/engine
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
-# Final image is ~12MB — no Go toolchain, no shell (scratch would work too)
 FROM alpine:3.19
 
 RUN apk add --no-cache ca-certificates tzdata wget && \
@@ -25,7 +26,6 @@ RUN apk add --no-cache ca-certificates tzdata wget && \
 
 COPY --from=builder /bin/engine /usr/local/bin/engine
 
-# Run as non-root (security best practice, required for many K8s policies)
 USER app
 
 EXPOSE 8080
