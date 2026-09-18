@@ -1,0 +1,22 @@
+# Binaries and build artifacts
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+
+# Environment variables
+.env
+!.env.example
+
+# IDE / OS specific
+.DS_Store
+.idea/
+.vscode/
+
+# Temporary files
+scratch/
+tmp/
